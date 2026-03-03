@@ -1,0 +1,243 @@
+// Astronomy frame stacking — NEON (f32x4) variant for aarch64.
+// Same exports and signatures as stack.ea, but uses 128-bit vectors.
+
+// In-place accumulation: acc[i] += frame[i]
+export func accumulate_f32x8(acc: *mut f32, frame: *restrict f32, len: i32) {
+    let mut i: i32 = 0
+
+    while i + 8 <= len {
+        prefetch(acc, i + 32)
+        prefetch(frame, i + 32)
+        let va0: f32x4 = load(acc, i)
+        let vf0: f32x4 = load(frame, i)
+        let va1: f32x4 = load(acc, i + 4)
+        let vf1: f32x4 = load(frame, i + 4)
+        store(acc, i, va0 .+ vf0)
+        store(acc, i + 4, va1 .+ vf1)
+        i = i + 8
+    }
+
+    while i + 4 <= len {
+        let va: f32x4 = load(acc, i)
+        let vf: f32x4 = load(frame, i)
+        store(acc, i, va .+ vf)
+        i = i + 4
+    }
+
+    while i < len {
+        acc[i] = acc[i] + frame[i]
+        i = i + 1
+    }
+}
+
+// Batched accumulation: 4 frames at once.
+export func accumulate_batch4_f32x8(
+    acc: *mut f32,
+    f0: *restrict f32,
+    f1: *restrict f32,
+    f2: *restrict f32,
+    f3: *restrict f32,
+    len: i32
+) {
+    let mut i: i32 = 0
+
+    while i + 8 <= len {
+        prefetch(acc, i + 32)
+        prefetch(f0, i + 32)
+        prefetch(f1, i + 32)
+        prefetch(f2, i + 32)
+        prefetch(f3, i + 32)
+
+        let a0: f32x4 = load(acc, i)
+        let a1: f32x4 = load(acc, i + 4)
+        let v00: f32x4 = load(f0, i)
+        let v01: f32x4 = load(f0, i + 4)
+        let v10: f32x4 = load(f1, i)
+        let v11: f32x4 = load(f1, i + 4)
+        let v20: f32x4 = load(f2, i)
+        let v21: f32x4 = load(f2, i + 4)
+        let v30: f32x4 = load(f3, i)
+        let v31: f32x4 = load(f3, i + 4)
+
+        store(acc, i, a0 .+ v00 .+ v10 .+ v20 .+ v30)
+        store(acc, i + 4, a1 .+ v01 .+ v11 .+ v21 .+ v31)
+        i = i + 8
+    }
+
+    while i + 4 <= len {
+        let a: f32x4 = load(acc, i)
+        let v0: f32x4 = load(f0, i)
+        let v1: f32x4 = load(f1, i)
+        let v2: f32x4 = load(f2, i)
+        let v3: f32x4 = load(f3, i)
+        store(acc, i, a .+ v0 .+ v1 .+ v2 .+ v3)
+        i = i + 4
+    }
+
+    while i < len {
+        acc[i] = acc[i] + f0[i] + f1[i] + f2[i] + f3[i]
+        i = i + 1
+    }
+}
+
+// Batched accumulation: 8 frames at once.
+export func accumulate_batch8_f32x8(
+    acc: *mut f32,
+    f0: *restrict f32,
+    f1: *restrict f32,
+    f2: *restrict f32,
+    f3: *restrict f32,
+    f4: *restrict f32,
+    f5: *restrict f32,
+    f6: *restrict f32,
+    f7: *restrict f32,
+    len: i32
+) {
+    let mut i: i32 = 0
+
+    while i + 8 <= len {
+        prefetch(acc, i + 32)
+        prefetch(f0, i + 32)
+        prefetch(f1, i + 32)
+        prefetch(f2, i + 32)
+        prefetch(f3, i + 32)
+        prefetch(f4, i + 32)
+        prefetch(f5, i + 32)
+        prefetch(f6, i + 32)
+        prefetch(f7, i + 32)
+
+        let a0: f32x4 = load(acc, i)
+        let a1: f32x4 = load(acc, i + 4)
+        let v00: f32x4 = load(f0, i)
+        let v01: f32x4 = load(f0, i + 4)
+        let v10: f32x4 = load(f1, i)
+        let v11: f32x4 = load(f1, i + 4)
+        let v20: f32x4 = load(f2, i)
+        let v21: f32x4 = load(f2, i + 4)
+        let v30: f32x4 = load(f3, i)
+        let v31: f32x4 = load(f3, i + 4)
+        let v40: f32x4 = load(f4, i)
+        let v41: f32x4 = load(f4, i + 4)
+        let v50: f32x4 = load(f5, i)
+        let v51: f32x4 = load(f5, i + 4)
+        let v60: f32x4 = load(f6, i)
+        let v61: f32x4 = load(f6, i + 4)
+        let v70: f32x4 = load(f7, i)
+        let v71: f32x4 = load(f7, i + 4)
+
+        store(acc, i,     a0 .+ v00 .+ v10 .+ v20 .+ v30 .+ v40 .+ v50 .+ v60 .+ v70)
+        store(acc, i + 4, a1 .+ v01 .+ v11 .+ v21 .+ v31 .+ v41 .+ v51 .+ v61 .+ v71)
+        i = i + 8
+    }
+
+    while i + 4 <= len {
+        let a: f32x4 = load(acc, i)
+        let v0: f32x4 = load(f0, i)
+        let v1: f32x4 = load(f1, i)
+        let v2: f32x4 = load(f2, i)
+        let v3: f32x4 = load(f3, i)
+        let v4: f32x4 = load(f4, i)
+        let v5: f32x4 = load(f5, i)
+        let v6: f32x4 = load(f6, i)
+        let v7: f32x4 = load(f7, i)
+        store(acc, i, a .+ v0 .+ v1 .+ v2 .+ v3 .+ v4 .+ v5 .+ v6 .+ v7)
+        i = i + 4
+    }
+
+    while i < len {
+        acc[i] = acc[i] + f0[i] + f1[i] + f2[i] + f3[i] + f4[i] + f5[i] + f6[i] + f7[i]
+        i = i + 1
+    }
+}
+
+// No _nt variant on ARM — stream_store is x86-only.
+
+// Scale: out[i] = data[i] * factor
+export func scale_f32x8(data: *restrict f32, out: *mut f32, len: i32, factor: f32) {
+    let vfactor: f32x4 = splat(factor)
+    let mut i: i32 = 0
+
+    while i + 8 <= len {
+        prefetch(data, i + 32)
+        let v0: f32x4 = load(data, i)
+        let v1: f32x4 = load(data, i + 4)
+        store(out, i, v0 .* vfactor)
+        store(out, i + 4, v1 .* vfactor)
+        i = i + 8
+    }
+
+    while i + 4 <= len {
+        let v: f32x4 = load(data, i)
+        store(out, i, v .* vfactor)
+        i = i + 4
+    }
+
+    while i < len {
+        out[i] = data[i] * factor
+        i = i + 1
+    }
+}
+
+// Single-pass min/max/sum.
+export func frame_stats(
+    data: *restrict f32,
+    len: i32,
+    out_min: *mut f32,
+    out_max: *mut f32,
+    out_sum: *mut f32
+) {
+    let init_val: f32 = data[0]
+    let mut sum_acc0: f32x4 = splat(0.0)
+    let mut sum_acc1: f32x4 = splat(0.0)
+    let mut min_acc0: f32x4 = splat(init_val)
+    let mut min_acc1: f32x4 = splat(init_val)
+    let mut max_acc0: f32x4 = splat(init_val)
+    let mut max_acc1: f32x4 = splat(init_val)
+
+    let mut i: i32 = 0
+
+    while i + 8 <= len {
+        prefetch(data, i + 32)
+        let v0: f32x4 = load(data, i)
+        let v1: f32x4 = load(data, i + 4)
+
+        sum_acc0 = sum_acc0 .+ v0
+        sum_acc1 = sum_acc1 .+ v1
+
+        min_acc0 = select(v0 .< min_acc0, v0, min_acc0)
+        min_acc1 = select(v1 .< min_acc1, v1, min_acc1)
+
+        max_acc0 = select(v0 .> max_acc0, v0, max_acc0)
+        max_acc1 = select(v1 .> max_acc1, v1, max_acc1)
+
+        i = i + 8
+    }
+
+    while i + 4 <= len {
+        let v: f32x4 = load(data, i)
+        sum_acc0 = sum_acc0 .+ v
+        min_acc0 = select(v .< min_acc0, v, min_acc0)
+        max_acc0 = select(v .> max_acc0, v, max_acc0)
+        i = i + 4
+    }
+
+    let sum_merged: f32x4 = sum_acc0 .+ sum_acc1
+    let min_merged: f32x4 = select(min_acc0 .< min_acc1, min_acc0, min_acc1)
+    let max_merged: f32x4 = select(max_acc0 .> max_acc1, max_acc0, max_acc1)
+
+    let mut total_sum: f32 = reduce_add(sum_merged)
+    let mut total_min: f32 = reduce_min(min_merged)
+    let mut total_max: f32 = reduce_max(max_merged)
+
+    while i < len {
+        let v: f32 = data[i]
+        total_sum = total_sum + v
+        if v < total_min { total_min = v }
+        if v > total_max { total_max = v }
+        i = i + 1
+    }
+
+    out_min[0] = total_min
+    out_max[0] = total_max
+    out_sum[0] = total_sum
+}

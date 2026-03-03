@@ -22,12 +22,21 @@ case "$(uname -s)" in
         ;;
 esac
 
+ARCH="$(uname -m)"
+
 mkdir -p "$LIB_DIR"
 
 for kernel in stack; do
+    SRC="${kernel}.ea"
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+        if [[ -f "$KERNEL_DIR/${kernel}_arm.ea" ]]; then
+            SRC="${kernel}_arm.ea"
+        fi
+    fi
+
     OUTNAME="${PREFIX}${kernel}${EXT}"
-    echo "Compiling ${kernel}.ea -> ${OUTNAME}"
-    (cd "$LIB_DIR" && "$EA" "$KERNEL_DIR/${kernel}.ea" --lib -o "$OUTNAME")
+    echo "Compiling ${SRC} -> ${OUTNAME}"
+    (cd "$LIB_DIR" && "$EA" "$KERNEL_DIR/${SRC}" --lib -o "$OUTNAME")
 done
 
 rm -f "$LIB_DIR"/*.o
