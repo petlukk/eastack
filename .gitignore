@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+*.o
+src/eastack/lib/*.so
+src/eastack/lib/*.dll
+.pytest_cache/
